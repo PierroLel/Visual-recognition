@@ -1,4 +1,4 @@
-# Visual-recognition
+# Visual-recognition NN
 trying to identify from pictures if car/animal/house or bicycle
 
 
