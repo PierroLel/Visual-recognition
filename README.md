@@ -6,7 +6,7 @@ The pictures are not available in this github, they come from google images, and
 
 The main script is Visual Rec CNN.py, the other ones are notebooks used in the begining:
 
-notebooks = MLP, Sickit Learn
+notebooks := MLP, Sickit Learn
 
-py file : CNN, TensorFlow
+py file := CNN, TensorFlow
 
