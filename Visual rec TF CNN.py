@@ -83,7 +83,9 @@ import tensorflow as tf
 
 def weight_variable(shape, name=None):
     initial = tf.truncated_normal(shape, stddev=0.09)
-    return tf.Variable(initial,name=name)
+    a=tf.Variable(initial,name=name)
+    tf.summary.histogram(name, a)
+    return a
 
 def bias_variable(shape):
     initial = tf.constant(0.5, shape=shape)
@@ -118,156 +120,148 @@ y_= tf.placeholder(tf.float32,name="y") # output
 ###################################################
 ##############  1st conv & pool layer #############
 
-W_conv1_1 = weight_variable([2, 2, # 5x5 convolutionnal window
-                           3,      # 1 batch at a time
-                           8],name="W_conv1_1")    # 32 times
-tf.summary.histogram('W_conv1_1', W_conv1_1)
-b_conv1_1 = bias_variable([8])
-x_image = tf.reshape(x, [-1,           # 1 batch
-                         res_l, res_h, # size of pic
-                         3])           # in color(3) or not(1)
+with tf.name_scope("C_P_1"):
+    W_conv1_1 = weight_variable([2, 2, # 5x5 convolutionnal window
+                               3,      # 1 batch at a time
+                               8],name="W_conv1_1")    # 32 times
 
-h_conv1_1 = tf.nn.relu(         # apply relu function to
-    conv2d(x_image, W_conv1_1)  # 1 batch of 5x5pic 32 times
-    + b_conv1_1)                # remove bias
+    b_conv1_1 = bias_variable([8])
+    x_image = tf.reshape(x, [-1,           # # batch
+                             res_l, res_h, # size of pic
+                             3])           # in color(3) or not(1)
+
+    h_conv1_1 = tf.nn.relu(         # apply relu function to
+        conv2d(x_image, W_conv1_1)  # 1 batch of 5x5pic 32 times
+        + b_conv1_1,name="h_conv1_1")                # remove bias
 
 
-## 4 3x3 conv before pooling:
-W_conv1_2 = weight_variable([2, 2, # 5x5 convolutionnal window
-                           8,      # 1 batch at a time
-                           8],name="W_conv1_2")    # 32 times
-b_conv1_2 = bias_variable([8])
+    ## 4 3x3 conv before pooling:
+    W_conv1_2 = weight_variable([2, 2, # 5x5 convolutionnal window
+                               8,      # 1 batch at a time
+                               8],name="W_conv1_2")    # 32 times
+    b_conv1_2 = bias_variable([8])
 
-h_conv1_2 = tf.nn.relu(
-    conv2d(h_conv1_1, W_conv1_2)
-    + b_conv1_2)
+    h_conv1_2 = tf.nn.relu(
+        conv2d(h_conv1_1, W_conv1_2)
+        + b_conv1_2,name="h_conv1_2")
 
-W_conv1_3 = weight_variable([3, 3, 8, 8],name="W_conv1_3") ; b_conv1_3 = bias_variable([8])
-h_conv1_3 = tf.nn.relu( conv2d(h_conv1_2, W_conv1_3) + b_conv1_3)
+    W_conv1_3 = weight_variable([3, 3, 8, 8],name="W_conv1_3") ; b_conv1_3 = bias_variable([8])
+    h_conv1_3 = tf.nn.relu( conv2d(h_conv1_2, W_conv1_3) + b_conv1_3,name="h_conv1_3")
 
-#W_conv1_4 = weight_variable([3, 3, 8, 8]) ; b_conv1_4 = bias_variable([8])
-#h_conv1_4 = tf.nn.relu( conv2d(h_conv1_3, W_conv1_4) + b_conv1_4)
+    W_conv1_4 = weight_variable([3, 3, 8, 8],name="W_conv1_4") ; b_conv1_4 = bias_variable([8])
+    h_conv1_4 = tf.nn.relu( conv2d(h_conv1_3, W_conv1_4) + b_conv1_4,name="h_conv1_4")
 
-#tf.summary.histogram('W_conv1_3', W_conv1_3)
+    #tf.summary.histogram('W_conv1_3', W_conv1_3)
 
-h_pool1 = max_pool_2x2(h_conv1_3) # take max of 2x2 pooling from previous convolution layer output
-tf.summary.histogram('h_pool1', h_pool1)
-## now we have round up(res_h/stride) * round up(res_l/stride) pics
-# sess=tf.Session();sess.run(tf.global_variables_initializer());hh=sess.run(h_pool2,feed_dict={x:X_train[0:3]})
-# hh.shape
+    h_pool1 = avg_pool_2x2(h_conv1_4) # take max of 2x2 pooling from previous convolution layer output
+    tf.summary.histogram('h_pool1', h_pool1)
+    ## now we have round up(res_h/stride) * round up(res_l/stride) pics
+    # sess=tf.Session();sess.run(tf.global_variables_initializer());hh=sess.run(h_pool2,feed_dict={x:X_train[0:3]})
+    # hh.shape
 
 ###################################################
 ##############  2nd conv & pool layer #############
+with tf.name_scope("C_P_2"):
 
-W_conv2_1 = weight_variable([3, 3,
-                           8, 8],name="W_conv2_1")
-tf.summary.histogram('W_conv2_1', W_conv2_1)
+    W_conv2_1 = weight_variable([3, 3,
+                               8, 8],name="W_conv2_1")
+    b_conv2_1 = bias_variable([8])
+    h_conv2_1 = tf.nn.relu(conv2d(h_pool1, # output of previous pooling layer
+                                W_conv2_1) + b_conv2_1,name="h_conv2_1")
 
-b_conv2_1 = bias_variable([8])
+    W_conv2_2 = weight_variable([3, 3, 8, 8],name="W_conv2_2") ; b_conv2_2 = bias_variable([8])
+    h_conv2_2 = tf.nn.relu( conv2d(h_conv2_1, W_conv2_2) + b_conv2_2,name="h_conv2_2")
 
-h_conv2_1 = tf.nn.relu(conv2d(h_pool1, # output of previous pooling layer
-                            W_conv2_1) + b_conv2_1)
+    W_conv2_3 = weight_variable([3, 3, 8, 8],name="W_conv2_3") ; b_conv2_3 = bias_variable([8])
+    h_conv2_3 = tf.nn.relu( conv2d(h_conv2_2, W_conv2_3) + b_conv2_3,name="h_conv2_3")
 
-W_conv2_2 = weight_variable([3, 3, 8, 8],name="W_conv2_2") ; b_conv2_2 = bias_variable([8])
-h_conv2_2 = tf.nn.relu( conv2d(h_conv2_1, W_conv2_2) + b_conv2_2)
+    # pool :
+    h_pool2 = avg_pool_2x2(h_conv2_3,strides = [1,
+                                              2, 2,
+                                              1])
 
-#W_conv2_3 = weight_variable([3, 3, 8, 8]) ; b_conv2_3 = bias_variable([8])
-#h_conv2_3 = tf.nn.relu( conv2d(h_conv2_2, W_conv2_3) + b_conv2_3)
-
-# pool :
-h_pool2 = avg_pool_2x2(h_conv2_2,strides = [1,
-                                          2, 2,
-                                          1])
-
-## now we have (res_h/stride_1/stride_2) * (res_l/stride_1/stride_2) pics
+    ## now we have (res_h/stride_1/stride_2) * (res_l/stride_1/stride_2) pics
 
 ###################################################
 ##############  3rd conv & pool layer #############
+with tf.name_scope("C_P_3"):
+    W_conv3_1 = weight_variable([3, 3,
+                               8, 16],name="W_conv3_1")
+    b_conv3_1 = bias_variable([16])
+    h_conv3_1 = tf.nn.relu(conv2d(h_pool2, # output of previous pooling layer
+                                W_conv3_1) + b_conv3_1,name="h_conv3_1")
 
-W_conv3_1 = weight_variable([3, 3,
-                           8, 16],name="W_conv3_1")
-tf.summary.histogram('W_conv3_1', W_conv3_1)
-b_conv3_1 = bias_variable([16])
-h_conv3_1 = tf.nn.relu(conv2d(h_pool2, # output of previous pooling layer
-                            W_conv3_1) + b_conv3_1)
+    ## 2 conv layers
+    W_conv3_2 = weight_variable([3, 3,  16, 16],name="W_conv3_2")   ;  b_conv3_2 = bias_variable([16])
+    h_conv3_2 = tf.nn.relu(conv2d(h_conv3_1,   W_conv3_2) + b_conv3_2,name="h_conv3_2")
 
-## 2 conv layers
-W_conv3_2 = weight_variable([3, 3,  16, 16],name="W_conv3_2")   ;  b_conv3_2 = bias_variable([16])
-h_conv3_2 = tf.nn.relu(conv2d(h_conv3_1,   W_conv3_2) + b_conv3_2)
+    W_conv3_3 = weight_variable([3, 3, 16, 16], name="W_conv3_3") ; b_conv3_3 = bias_variable([16])
+    h_conv3_3 = tf.nn.relu( conv2d(h_conv3_2, W_conv3_3) + b_conv3_3, name="h_conv3_3")
 
-#W_conv3_3 = weight_variable([3, 3, 16, 16]) ; b_conv3_3 = bias_variable([16])
-#h_conv3_3 = tf.nn.relu( conv2d(h_conv3_2, W_conv3_3) + b_conv3_3)
-
-h_pool3 = max_pool_2x2(h_conv3_2,strides = [1,
-                                          2, 2,
-                                          1])
-tf.summary.histogram('h_pool3', h_pool3)
-## now we have (res_h/stride_1/stride_2/stride_3) * (res_l/stride_1/stride_2/stride_3) pics
+    h_pool3 = max_pool_2x2(h_conv3_3,strides = [1,
+                                              2, 2,
+                                              1])
+    tf.summary.histogram('h_pool3', h_pool3)
+    ## now we have (res_h/stride_1/stride_2/stride_3) * (res_l/stride_1/stride_2/stride_3) pics
 
 
 
 ###################################################
 ##############  4th conv & pool layer #############
+with tf.name_scope("C_P_4"):
+    W_conv4_1 = weight_variable([3, 3,
+                               16, 16],name="W_conv4_1")
+    b_conv4_1 = bias_variable([16])
 
-W_conv4_1 = weight_variable([3, 3,
-                           16, 16],name="W_conv4_1")
-b_conv4_1 = bias_variable([16])
+    h_conv4_1 = tf.nn.relu(conv2d(h_pool3, # output of previous pooling layer
+                                W_conv4_1) + b_conv4_1,name="h_conv4_1")
 
-h_conv4_1 = tf.nn.relu(conv2d(h_pool3, # output of previous pooling layer
-                            W_conv4_1) + b_conv4_1)
+    W_conv4_2 = weight_variable([3, 3, 16, 32],name="W_conv4_2") ; b_conv4_2 = bias_variable([32])
+    h_conv4_2 = tf.nn.relu( conv2d(h_conv4_1, W_conv4_2) + b_conv4_2,name="h_conv4_2")
 
-W_conv4_2 = weight_variable([3, 3, 16, 32],name="W_conv4_2") ; b_conv4_2 = bias_variable([32])
-h_conv4_2 = tf.nn.relu( conv2d(h_conv4_1, W_conv4_2) + b_conv4_2)
-tf.summary.histogram('W_conv4_2', W_conv4_2)
+    W_conv4_3 = weight_variable([3, 3, 32, 32],name="W_conv4_3") ; b_conv4_3 = bias_variable([32])
+    h_conv4_3 = tf.nn.relu( conv2d(h_conv4_2, W_conv4_3) + b_conv4_3,name="h_conv4_3")
 
-
-W_conv4_3 = weight_variable([3, 3, 32, 32],name="W_conv4_3") ; b_conv4_3 = bias_variable([32])
-h_conv4_3 = tf.nn.relu( conv2d(h_conv4_2, W_conv4_3) + b_conv4_3)
-
-h_pool4 = avg_pool_2x2(h_conv4_3,strides = [1,
-                                          2, 2,
-                                          1])
-## now we have (res_h/stride_1/stride_2/stride_3/stride_4) * (res_l/stride_1/stride_2/stride_3/stride_4) pics
+    h_pool4 = avg_pool_2x2(h_conv4_3,strides = [1,
+                                              2, 2,
+                                              1])
+    ## now we have (res_h/stride_1/stride_2/stride_3/stride_4) * (res_l/stride_1/stride_2/stride_3/stride_4) pics
 
 
 ###################################################
 ##############  5th conv & pool layer #############
+with tf.name_scope("C_P_5"):
+    W_conv5_1 = weight_variable([3, 3,  32,  32],name="W_conv5_1");  b_conv5_1 = bias_variable([32])
+    h_conv5_1 = tf.nn.relu(conv2d(h_pool4, W_conv5_1) + b_conv5_1,name="h_conv5_1")
 
-W_conv5_1 = weight_variable([3, 3,  32,  32],name="W_conv5_1");  b_conv5_1 = bias_variable([32])
-tf.summary.histogram('W_conv5_1', W_conv5_1)
-h_conv5_1 = tf.nn.relu(conv2d(h_pool4, W_conv5_1) + b_conv5_1)
+    W_conv5_2 = weight_variable([3, 3, 32, 32],name="W_conv5_2") ; b_conv5_2 = bias_variable([32])
+    h_conv5_2 = tf.nn.relu( conv2d(h_conv5_1, W_conv5_2) + b_conv5_2,name="h_conv5_2")
 
-#W_conv5_2 = weight_variable([3, 3, 32, 32]) ; b_conv5_2 = bias_variable([32])
-#h_conv5_2 = tf.nn.relu( conv2d(h_conv5_1, W_conv5_2) + b_conv5_2)
-
-W_conv5_3 = weight_variable([3, 3, 32, 64],name="W_conv5_3") ; b_conv5_3 = bias_variable([64])
-h_conv5_3 = tf.nn.relu( conv2d(h_conv5_1, W_conv5_3) + b_conv5_3)
+    W_conv5_3 = weight_variable([3, 3, 32, 64],name="W_conv5_3") ; b_conv5_3 = bias_variable([64])
+    h_conv5_3 = tf.nn.relu( conv2d(h_conv5_2, W_conv5_3) + b_conv5_3,name="h_conv5_3")
 
 
-h_pool5 = max_pool_2x2(h_conv5_3,strides = [1,
-                                          2, 2,
-                                          1])
-## now we have (res_h/stride_1/stride_2/stride_3/stride_4/stride_5) * (res_l/stride_1/stride_2/stride_3/stride_4/stride_5) pics
+    h_pool5 = max_pool_2x2(h_conv5_3,strides = [1,
+                                              2, 2,
+                                              1])
+    ## now we have (res_h/stride_1/stride_2/stride_3/stride_4/stride_5) * (res_l/stride_1/stride_2/stride_3/stride_4/stride_5) pics
 
 
 ###################################################
 ##############  6th conv & pool layer #############
+with tf.name_scope("C_P_6"):
+    W_conv6_1 = weight_variable([3, 3,  64,  64],name="W_conv6_1");  b_conv6_1 = bias_variable([64])
+    h_conv6_1 = tf.nn.relu(conv2d(h_pool5, W_conv6_1) + b_conv6_1 , name="h_conv6_1")
 
-W_conv6_1 = weight_variable([3, 3,  64,  64],name="W_conv6_1");  b_conv6_1 = bias_variable([64])
-h_conv6_1 = tf.nn.relu(conv2d(h_pool5, W_conv6_1) + b_conv6_1)
+    W_conv6_2 = weight_variable([3, 3, 64, 64],name="W_conv6_2") ; b_conv6_2 = bias_variable([64])
+    h_conv6_2 = tf.nn.relu( conv2d(h_conv6_1, W_conv6_2) + b_conv6_2, name="h_conv6_2")
 
-W_conv6_2 = weight_variable([3, 3, 64, 64],name="W_conv6_2") ; b_conv6_2 = bias_variable([64])
-h_conv6_2 = tf.nn.relu( conv2d(h_conv6_1, W_conv6_2) + b_conv6_2)
-
-h_pool6 = avg_pool_2x2(h_conv6_2,strides = [1,
-                                          2, 2,
-                                          1])
-tf.summary.histogram('h_pool6', h_pool6)
-W_conv6_3 = weight_variable([3, 3, 64, 64],name="W_conv6_3") ; b_conv6_3 = bias_variable([64])
-h_conv6_3 = tf.nn.relu( conv2d(h_pool6, W_conv6_3) + b_conv6_3)
-#tf.summary.histogram('W_conv6_3', W_conv6_3)
-## average pooling
-
+    h_pool6 = avg_pool_2x2(h_conv6_2,strides = [1,
+                                              2, 2,
+                                              1])
+    tf.summary.histogram('h_pool6', h_pool6)
+    W_conv6_3 = weight_variable([3, 3, 64, 64],name="W_conv6_3") ; b_conv6_3 = bias_variable([64])
+    h_conv6_3 = tf.nn.relu( conv2d(h_pool6, W_conv6_3) + b_conv6_3, name="h_conv6_3")
 
 
 #dimm= math.ceil(math.ceil(math.ceil(math.ceil(math.ceil(math.ceil(res_h/s_h)/2)/2)/2)/2)/2) * math.ceil(math.ceil(math.ceil(math.ceil(math.ceil(math.ceil(res_l/s_l)/2)/2)/2)/2)/2) * 64
@@ -278,51 +272,49 @@ print(dimm)
 
 ####################################################
 ##############  1st full connect layer #############
+with tf.name_scope("FC_1"):
+    #h_pool_fc1 = avg_pool_2x2(h_pool6,strides = [1,
+    #                                          2, 2,
+    #                                          1])
 
-#h_pool_fc1 = avg_pool_2x2(h_pool6,strides = [1,
-#                                          2, 2,
-#                                          1])
+    W_fc1 = weight_variable([ int(dimm)  # size of pics rounded * channels
+                             , 1024],name="W_fc1")    # nb of neurons in next layer
+    b_fc1 = bias_variable([1024])
+    #tf.summary.histogram('W_fc1', W_fc1)
+    h_pool6_flat = tf.reshape(h_conv6_3, [-1             # flattened
+                                        , int(dimm)])
 
-W_fc1 = weight_variable([ int(dimm)  # size of pics rounded * channels
-                         , 1024],name="W_fc1")    # nb of neurons in next layer
-b_fc1 = bias_variable([1024])
-#tf.summary.histogram('W_fc1', W_fc1)
-h_pool6_flat = tf.reshape(h_conv6_3, [-1             # flattened
-                                    , int(dimm)])
-
-h_fc1 = tf.nn.relu(                           # apply relu on
-    tf.matmul(h_pool6_flat, W_fc1) + b_fc1)   # linear combination
+    h_fc1 = tf.nn.relu(                           # apply relu on
+        tf.matmul(h_pool6_flat, W_fc1) + b_fc1, name="h_fc1")   # linear combination
 
 ####################################################
 ##############  2nd full connect layer #############
+with tf.name_scope("FC_2"):
+    #see=tf.InteractiveSession()
+    #see.run(tf.global_variables_initializer())
+    #eee=see.run(h_pool6_flat,feed_dict={x:X_train1})
 
-#see=tf.InteractiveSession()
-#see.run(tf.global_variables_initializer())
-#eee=see.run(h_pool6_flat,feed_dict={x:X_train1})
-
-W_fc2 = weight_variable([ 1024  ,  500],name="W_fc2")   ;   b_fc2 = bias_variable([500])
-h_fc2 = tf.nn.relu(                    # apply relu on
-    tf.matmul(h_fc1, W_fc2) + b_fc2)   # linear combination
+    W_fc2 = weight_variable([ 1024  ,  500],name="W_fc2")   ;   b_fc2 = bias_variable([500])
+    h_fc2 = tf.nn.relu(                    # apply relu on
+        tf.matmul(h_fc1, W_fc2) + b_fc2, name="h_fc2")   # linear combination
 
 
 ###############################################
 ##############  1st dropout layer #############
-
 keep_prob = tf.placeholder(tf.float32) # the probability to keep a neuron's output
-#h_fc1_drop = tf.nn.dropout(h_fc2, keep_prob) # used to avoid overfitting on large networks
+#with tf.name_scope("drop_lay"):
+#    keep_prob = tf.placeholder(tf.float32) # the probability to keep a neuron's output
+    #h_fc1_drop = tf.nn.dropout(h_fc2, keep_prob) # used to avoid overfitting on large networks
 
 
 ###########################################
 ##############  readout layer #############
+with tf.name_scope("readout_layer"):
+    W_fc_rd = weight_variable([500   # nb of neurons in previous layer
+                             , 4],name="W_fc_rd")  # nb of class
+    b_fc_rd = bias_variable([4])
 
-W_fc_rd = weight_variable([500   # nb of neurons in previous layer
-                         , 4],name="W_fc_rd")  # nb of class
-b_fc_rd = bias_variable([4])
-
-y_conv = tf.matmul(h_fc2, W_fc_rd) + b_fc_rd # linear combination
-
-
-
+y_conv = tf.add(tf.matmul(h_fc2, W_fc_rd) , b_fc_rd, name="y_conv") # linear combination
 ######################################
 ############ 1St TRAINING ############
 ######################################
@@ -331,7 +323,7 @@ y_conv = tf.matmul(h_fc2, W_fc_rd) + b_fc_rd # linear combination
 cross_entropy = tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits( # transform distance into prob
         labels=y_                            # target
-        , logits=y_conv+tf.constant(value=0.000001)))                    # estimation
+        , logits=y_conv+tf.constant(value=0.000001)), name="cross_entropy")                    # estimation
 
 #cross_entropy = -tf.reduce_sum(y_*tf.log(y_conv + 1e-10))
 #cross_entropy = -tf.reduce_sum(y_*tf.log(tf.clip_by_value(y_conv,1e-8,1.0)))
@@ -350,7 +342,7 @@ train_step = tf.train.AdamOptimizer(learning_rate=0.001,
                                     beta2=0.999,
                                     epsilon=1e-06,).minimize(cross_entropy) # minimization algorithm
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))  # 0 or 1
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))     # mean of the errors
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32),name="accuracy")     # mean of the errors
 tf.summary.histogram('accuracy', accuracy)
 
 import time
@@ -409,8 +401,6 @@ with tf.Session() as sess:
         writer.add_summary(summary, i)
     save_path = saver.save(sess, "C:/Users/woill/.spyder-py3/tmp/model.ckpt")
     writer.close()
-
-
 
 ######################################
 tf.reset_default_graph()
@@ -475,4 +465,15 @@ with tf.Session() as sess:
     writer.close()
 
 
+
+######################################
+########## Check the images ##########
+######################################
+tf.summary.image(name="im_tes",tensor = x_image)
+see=tf.InteractiveSession()
+see.run(tf.global_variables_initializer())
+merge = tf.summary.merge_all()
+summary = see.run(merge,feed_dict={x: np.array(X_train1[22,:]).reshape(-1,224*224*3),y_:np.array(y_train1.iloc[22,:]).reshape(-1,4),
+                                   keep_prob: 1})
+writer.add_summary(summary, i)
 
