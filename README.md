@@ -9,3 +9,5 @@ notebooks := MLP, Sickit Learn
 
 py file := CNN, TensorFlow
 
+The TensorBoard graph is available in the file : events.out.tfevents.1514482979.DESKTOP-3D636RH
+
